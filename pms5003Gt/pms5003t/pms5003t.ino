@@ -8,9 +8,9 @@
 #include <WiFi.h>
 #include <LWiFi.h>
 #include <WiFiClient.h>
-
-char ssid[] = "Sodagreen";          // your network SSID (name)
-char pass[] = "w431231853211";     // your network password (use for WPA, or use as key for WEP)
+int ID = 5;
+char ssid[] = "CSIE-WLAN";          // your network SSID (name)
+char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
 int status = WL_IDLE_STATUS;
@@ -43,7 +43,7 @@ char send_msg[1024];
 
 void setup() {
     // put your setup code here, to run once:
-    Serial.begin(9600);
+    Serial.begin(19200);
     mySerial.begin(9600);
 
     connectWIFI();
@@ -66,11 +66,27 @@ void loop() {
   unsigned char high;
 
   // check wifi status, dc then re-connect
-  if(status != WL_CONNECTED) {
-    connectWIFI();
-    connectServer();
+  //Serial.println(WiFi.status());
+  if((int)WiFi.status() != 3) {
+      Serial.println("WiFi has disconnected. Re-connecting...");
+      status = WL_IDLE_STATUS;
+      while (status != WL_CONNECTED) {
+          Serial.print("Attempting to connect to SSID: ");
+          Serial.println(ssid);
+          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+          status = WiFi.begin(ssid,pass);
+      
+          // wait 5 seconds for connection:
+          delay(2000);
+      }
+      connectServer();
   }
-
+  // check server status, dc then re-connect
+  //Serial.println(wifiClient.status());
+  if((int)wifiClient.connected() == 0){
+      connectServer();
+  }
+  
   // read data
   while (mySerial.available()) {
     c = mySerial.read();
@@ -164,13 +180,18 @@ void loop() {
   }
 
   // sending data message
-  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d }", pm10, pm25, pm100, temp, hum);
+  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
   Serial.println(send_msg);
   send_mes(send_msg);
   
   while(mySerial.available()) mySerial.read();
   Serial.println();
-  // send every 5 seconds
+  pm10 = 0;
+  pm25 = 0;
+  pm100 = 0;
+  temp = 0;
+  hum = 0;
+  // send every 10 seconds
   delay(10000);
 }
 
@@ -189,6 +210,8 @@ void printWifiStatus() {
   Serial.print("signal strength (RSSI):");
   Serial.print(rssi);
   Serial.println(" dBm");
+
+  Serial.println(WiFi.status());
 }
 
 void connectWIFI(){
@@ -199,8 +222,8 @@ void connectWIFI(){
         // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
         status = WiFi.begin(ssid,pass);
     
-        // wait 5 seconds for connection:
-        delay(5000);
+        // wait 2 seconds for connection:
+        delay(2000);
     }
     
     Serial.println("Connected to wifi");
@@ -210,7 +233,7 @@ void connectWIFI(){
 void connectServer(){
     //attempt to connect to server
     while (!wifiClient.connect(TCP_IP, TCP_PORT)){
-        delay(300);
+        delay(2000);
         Serial.print("Attempting to connect to SERVER: ");
         Serial.println(TCP_IP);
     }
