@@ -8,7 +8,7 @@
 #include <WiFi.h>
 #include <LWiFi.h>
 #include <WiFiClient.h>
-int ID = 5;
+int ID = 8;
 char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
@@ -46,6 +46,9 @@ void setup() {
     Serial.begin(19200);
     mySerial.begin(9600);
 
+    pinMode(4, OUTPUT);
+    digitalWrite(4, LOW);
+
     connectWIFI();
     connectServer();
     
@@ -68,6 +71,7 @@ void loop() {
   // check wifi status, dc then re-connect
   //Serial.println(WiFi.status());
   if((int)WiFi.status() != 3) {
+      digitalWrite(4, LOW);
       Serial.println("WiFi has disconnected. Re-connecting...");
       status = WL_IDLE_STATUS;
       while (status != WL_CONNECTED) {
@@ -84,6 +88,7 @@ void loop() {
   // check server status, dc then re-connect
   //Serial.println(wifiClient.status());
   if((int)wifiClient.connected() == 0){
+      digitalWrite(4, LOW);
       connectServer();
   }
   
@@ -191,8 +196,8 @@ void loop() {
   pm100 = 0;
   temp = 0;
   hum = 0;
-  // send every 10 seconds
-  delay(10000);
+  // send every 45 seconds
+  delay(45000);
 }
 
 void printWifiStatus() {
@@ -239,6 +244,8 @@ void connectServer(){
     }
     
     Serial.println("connected to server");
+    digitalWrite(4, HIGH);
+    delay(10000);  
 }
 
 
