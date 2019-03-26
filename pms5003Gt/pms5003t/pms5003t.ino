@@ -8,6 +8,9 @@
 #include <WiFi.h>
 #include <LWiFi.h>
 #include <WiFiClient.h>
+#include <string.h>
+#include <LRTC.h>
+
 int ID = 8;
 char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
@@ -52,7 +55,6 @@ void setup() {
     connectWIFI();
     connectServer();
     
-    recv_mes();
     Serial.println("message received");
 }
 /*u8g.firstPage();  
@@ -70,7 +72,7 @@ void loop() {
 
   // check wifi status, dc then re-connect
   //Serial.println(WiFi.status());
-  if((int)WiFi.status() != 3) {
+  if(WiFi.status() != WL_CONNECTED) {
       digitalWrite(4, LOW);
       Serial.println("WiFi has disconnected. Re-connecting...");
       status = WL_IDLE_STATUS;
@@ -87,7 +89,7 @@ void loop() {
   }
   // check server status, dc then re-connect
   //Serial.println(wifiClient.status());
-  if((int)wifiClient.connected() == 0){
+  if(!wifiClient.connected()){
       digitalWrite(4, LOW);
       connectServer();
   }
@@ -105,80 +107,80 @@ void loop() {
     }
     else if(count == 4 || count == 6 || count == 8 || count == 10 || count == 12 || count == 14|| count == 16|| count == 18|| count == 20|| count == 22|| count == 24|| count == 26|| count == 28 ) high = c;
     else if(count == 5){
-      pmcf10 = 256*high + c;
-      Serial.print("CF=1, PM1.0=");
-      Serial.print(pmcf10);
-      Serial.println(" ug/m3");
-      pm10 = pmcf10;
+//      pmcf10 = 256*high + c;
+//      Serial.print("CF=1, PM1.0=");
+//      Serial.print(pmcf10);
+//      Serial.println(" ug/m3");
     }
     else if(count == 7){
-      pmcf25 = 256*high + c;
-      Serial.print("CF=1, PM2.5=");
-      Serial.print(pmcf25);
-      Serial.println(" ug/m3");
-      pm25 = pmcf25;
+//      pmcf25 = 256*high + c;
+//      Serial.print("CF=1, PM2.5=");
+//      Serial.print(pmcf25);
+//      Serial.println(" ug/m3");
     }
     else if(count == 9){
-      pmcf100 = 256*high + c;
-      Serial.print("CF=1, PM10=");
-      Serial.print(pmcf100);
-      Serial.println(" ug/m3");
-      pm100 = pmcf100;
+//      pmcf100 = 256*high + c;
+//      Serial.print("CF=1, PM10=");
+//      Serial.print(pmcf100);
+//      Serial.println(" ug/m3");
     }
     else if(count == 11){
       pmat10 = 256*high + c;
-      Serial.print("atmosphere, PM1.0=");
-      Serial.print(pmat10);
-      Serial.println(" ug/m3");
+//      Serial.print("atmosphere, PM1.0=");
+//      Serial.print(pmat10);
+//      Serial.println(" ug/m3");
+      pm10 = pmat10;
     }
     else if(count == 13){
       pmat25 = 256*high + c;
-      Serial.print("atmosphere, PM2.5=");
-      Serial.print(pmat25);
-      Serial.println(" ug/m3");
+//      Serial.print("atmosphere, PM2.5=");
+//      Serial.print(pmat25);
+//      Serial.println(" ug/m3");
+      pm25 = pmat25;
     }
     else if(count == 15){
       pmat100 = 256*high + c;
-      Serial.print("atmosphere, PM10=");
-      Serial.print(pmat100);
-      Serial.println(" ug/m3");
+//      Serial.print("atmosphere, PM10=");
+//      Serial.print(pmat100);
+//      Serial.println(" ug/m3");
+      pm100 = pmat100;
     }
     else if(count == 17){
-      pm03PNO= 256*high + c;
-      Serial.print("above0.3um, no=");
-      Serial.print(pm03PNO);
-      Serial.println(" number");
+//      pm03PNO= 256*high + c;
+//      Serial.print("above0.3um, no=");
+//      Serial.print(pm03PNO);
+//      Serial.println(" number");
     }
     else if(count == 19){
-      pm05PNO = 256*high + c;
-      Serial.print("above0.5um, no=");
-      Serial.print(pm05PNO);
-      Serial.println(" number");
+//      pm05PNO = 256*high + c;
+//      Serial.print("above0.5um, no=");
+//      Serial.print(pm05PNO);
+//      Serial.println(" number");
     }
     else if(count == 21){
-      pm10PNO = 256*high + c;
-      Serial.print("above 1.0um, no=");
-      Serial.print(pm10PNO);
-      Serial.println(" number");
+//      pm10PNO = 256*high + c;
+//      Serial.print("above 1.0um, no=");
+//      Serial.print(pm10PNO);
+//      Serial.println(" number");
     }
     else if(count == 23){
-      pm25PNO = 256*high + c;
-      Serial.print("above 2.5um, no=");
-      Serial.print(pm25PNO);
-      Serial.println(" number");
+//      pm25PNO = 256*high + c;
+//      Serial.print("above 2.5um, no=");
+//      Serial.print(pm25PNO);
+//      Serial.println(" number");
     }
     else if(count == 25){
       Temperature = 256*high + c;
-      Serial.print("Temperature = ");
-      Serial.print(Temperature/10);
-      Serial.println(" ^C ");
+//      Serial.print("Temperature = ");
+//      Serial.print(Temperature/10);
+//      Serial.println(" ^C ");
       temp = Temperature/10;
     }
     else if(count == 27){
       Humidity = 256*high + c;
-      Serial.print("Humidity = ");
-      Serial.print(Humidity/10) ;
-      Serial.println(" % ");
+//      Serial.print("Humidity = ");
+//      Serial.print(Humidity/10) ;
+//      Serial.println(" % ");
       hum = Humidity/10;
     }
     count++;
@@ -196,8 +198,8 @@ void loop() {
   pm100 = 0;
   temp = 0;
   hum = 0;
-  // send every 45 seconds
-  delay(45000);
+  // send every 60 seconds
+  delay(60000);
 }
 
 void printWifiStatus() {
@@ -233,6 +235,21 @@ void connectWIFI(){
     
     Serial.println("Connected to wifi");
     //printWifiStatus();
+    // print your MAC address:
+//    byte mac[6];
+//    WiFi.macAddress(mac);
+//    Serial.print("MAC address: ");
+//    Serial.print(mac[5], HEX);
+//    Serial.print(":");
+//    Serial.print(mac[4], HEX);
+//    Serial.print(":");
+//    Serial.print(mac[3], HEX);
+//    Serial.print(":");
+//    Serial.print(mac[2], HEX);
+//    Serial.print(":");
+//    Serial.print(mac[1], HEX);
+//    Serial.print(":");
+//    Serial.println(mac[0], HEX);
 }
 
 void connectServer(){
@@ -244,6 +261,7 @@ void connectServer(){
     }
     
     Serial.println("connected to server");
+    recv_mes();
     digitalWrite(4, HIGH);
     delay(10000);  
 }
@@ -264,10 +282,10 @@ void recv_mes(){
               recv_buf[i++] = wifiClient.read();
           } while(i<200 && recv_buf[i-1]!='\r' && recv_buf[i-1]!='\0');
           recv_buf[i-1] = '\0';
+          Serial.println("Received message:");
           Serial.println(recv_buf);
           break;
     }
     else Serial.println("no received message");
   }
-  sprintf(recv_buf, "");
 }
