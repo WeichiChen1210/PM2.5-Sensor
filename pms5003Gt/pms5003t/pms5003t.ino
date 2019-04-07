@@ -1,3 +1,4 @@
+#include <Vector.h>
 /*  pm5003T 線 腳位 (TX綠 接 Arduino pin D2(rx) )
  *                   (SET白 接 Arduino pin D4也可不接)
  vcc GND  SET  RX  TX  RESET
@@ -10,12 +11,13 @@
 #include <WiFiClient.h>
 #include <string.h>
 #include <LRTC.h>
+#include <Streaming.h>
 
 int ID = 8;
 char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
-#define TCP_IP "140.116.82.93"
-#define TCP_PORT 82
+#define TCP_IP "172.20.10.5"
+#define TCP_PORT 8080
 int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;
 static int messageLen;
@@ -44,6 +46,11 @@ char recv_buf[1024];
 char send_buf[1024];
 char send_msg[1024];
 
+const int ELEMENT_COUNT_MAX = 30;
+int storage_array[ELEMENT_COUNT_MAX];
+Vector<int> vector(storage_array);
+vector.assign(ELEMENT_COUNT_MAX,0);
+
 void setup() {
     // put your setup code here, to run once:
     Serial.begin(19200);
@@ -52,10 +59,12 @@ void setup() {
     pinMode(4, OUTPUT);
     digitalWrite(4, LOW);
 
+    LRTC.begin();
     connectWIFI();
     connectServer();
     
     Serial.println("message received");
+    
 }
 /*u8g.firstPage();  
     do {
@@ -107,19 +116,19 @@ void loop() {
     }
     else if(count == 4 || count == 6 || count == 8 || count == 10 || count == 12 || count == 14|| count == 16|| count == 18|| count == 20|| count == 22|| count == 24|| count == 26|| count == 28 ) high = c;
     else if(count == 5){
-//      pmcf10 = 256*high + c;
+      pmcf10 = 256*high + c;
 //      Serial.print("CF=1, PM1.0=");
 //      Serial.print(pmcf10);
 //      Serial.println(" ug/m3");
     }
     else if(count == 7){
-//      pmcf25 = 256*high + c;
+      pmcf25 = 256*high + c;
 //      Serial.print("CF=1, PM2.5=");
 //      Serial.print(pmcf25);
 //      Serial.println(" ug/m3");
     }
     else if(count == 9){
-//      pmcf100 = 256*high + c;
+      pmcf100 = 256*high + c;
 //      Serial.print("CF=1, PM10=");
 //      Serial.print(pmcf100);
 //      Serial.println(" ug/m3");
@@ -146,19 +155,19 @@ void loop() {
       pm100 = pmat100;
     }
     else if(count == 17){
-//      pm03PNO= 256*high + c;
+      pm03PNO= 256*high + c;
 //      Serial.print("above0.3um, no=");
 //      Serial.print(pm03PNO);
 //      Serial.println(" number");
     }
     else if(count == 19){
-//      pm05PNO = 256*high + c;
+      pm05PNO = 256*high + c;
 //      Serial.print("above0.5um, no=");
 //      Serial.print(pm05PNO);
 //      Serial.println(" number");
     }
     else if(count == 21){
-//      pm10PNO = 256*high + c;
+      pm10PNO = 256*high + c;
 //      Serial.print("above 1.0um, no=");
 //      Serial.print(pm10PNO);
 //      Serial.println(" number");
@@ -185,12 +194,15 @@ void loop() {
     }
     count++;
   }
-
-  // sending data message
-  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
+  char timebuf[64];
+  LRTC.get();
+  sprintf(timebuf, "%ld/%ld/%ld %.2ld:%.2ld:%.2ld", LRTC.year(), LRTC.month(), LRTC.day(), LRTC.hour(), LRTC.minute(), LRTC.second());
+// sending data message
+  sprintf(send_msg, "{ 'time': %s, 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", timebuf, pm10, pm25, pm100, temp, hum, ID);
+  vector.push_back(send_msg);
+  Serial << vector << endl;
   Serial.println(send_msg);
   send_mes(send_msg);
-  
   while(mySerial.available()) mySerial.read();
   Serial.println();
   pm10 = 0;
@@ -255,7 +267,7 @@ void connectWIFI(){
 void connectServer(){
     //attempt to connect to server
     while (!wifiClient.connect(TCP_IP, TCP_PORT)){
-        delay(2000);
+        delay(5000);
         Serial.print("Attempting to connect to SERVER: ");
         Serial.println(TCP_IP);
     }
@@ -288,4 +300,10 @@ void recv_mes(){
     }
     else Serial.println("no received message");
   }
+  int year, month, day, hour, minute, second;
+  sscanf(recv_buf, "%04d-%02d-%02d %02d:%02d:%02d", &year, &month, &day, &hour, &minute, &second);
+  LRTC.set(year, month, day, hour, minute, second);
+//   char buffer[64];
+//   sprintf(buffer, "%ld/%ld/%ld %.2ld:%.2ld:%.2ld", LRTC.year(), LRTC.month(), LRTC.day(), LRTC.hour(), LRTC.minute(), LRTC.second());
+//   Serial.println(buffer);
 }
