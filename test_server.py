@@ -1,9 +1,11 @@
 import socket
 import threading
+import datetime
+import json
 
 # Request handler
 def handler(sock,addr):
-    msg = 'YEE from server. YEEEEEEEEEE'
+    msg = f'{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\0'
     print('Connection established')
     sock.send(msg.encode('utf-8'))
 
@@ -12,9 +14,8 @@ def handler(sock,addr):
         if not msg:
             print("ERROR : No data")
         else:
-            print(msg.decode('utf-8'))
-            msg = 'Data received'
-            sock.send(msg.encode('utf-8'))
+            # data = json.loads(msg.decode('utf-8').replace("\'", "\""))
+            print(f"{msg}")
    
     msg = 'Closing connection...'
     sock.send(msg.encode('utf-8'))
@@ -22,7 +23,7 @@ def handler(sock,addr):
 if __name__ == '__main__':
     # Turn on server
     sock = socket.socket()
-    sock.bind(('0.0.0.0', 82))# port
+    sock.bind(('0.0.0.0', 8080))# port
     sock.listen(5)
     
     print('Waiting for connection...')
