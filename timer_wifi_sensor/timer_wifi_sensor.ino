@@ -13,13 +13,12 @@
 
 LTimer timer0(LTIMER_0);
 bool timeout = false;
-bool check = true;
 int ID = 8;
 char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
-#define TIMELIMIT 590000
+#define TIMELIMIT 260000
 int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;
 static int messageLen;
@@ -55,7 +54,7 @@ void setup() {
 
     pinMode(4, OUTPUT);
     digitalWrite(4, HIGH);
-
+    delay(30000);
 //    LRTC.begin();
     connectWIFI();
     connectServer();
@@ -83,7 +82,7 @@ void setup() {
     Serial.println(wifiClient.connected()); //0 dc
     WiFi.disconnect();
     Serial.println(WiFi.status());
-    
+    digitalWrite(4, LOW);
     // turn on the timer
     timer0.begin();
     timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);
@@ -101,7 +100,9 @@ void _callback0(void *usr_data){
 */      
 void loop() {
   if(timeout){
+    digitalWrite(4, HIGH);
   Serial.println("in loop");
+    delay(28000);
   connectWIFI();
   connectServer();
   read_data();
@@ -132,24 +133,24 @@ void loop() {
   
     // check the data is normal or not
     if(pm10 == 0 && pm25 == 0 && pm100 == 0 && temp == 0 && hum == 0){
-      timer0.stop();
+//      timer0.stop();
       Serial.println("in zero if");
       while(pm10 == 0){        
         Serial.println("in while");
         delay(1000);
         read_data();
       }
-      timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);      
+//      timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);      
     }
     if(pm10 >= 1000 || temp > 45){
-      timer0.stop();
+//      timer0.stop();
       Serial.println("in big if");
       while(pm10 >= 1000 || temp > 45){        
         Serial.println("in while");
         delay(1000);
         read_data();
       }
-      timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);
+//      timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);
     }
     // if normal, send data
 //    if(pm10 != 0 && pm25 != 0 && pm100 != 0 && temp != 0 && hum != 0){
@@ -167,6 +168,7 @@ void loop() {
     Serial.println(wifiClient.connected()); //0 dc
     WiFi.disconnect();  //6 dc
     Serial.println(WiFi.status());  
+    digitalWrite(4, LOW);
     timeout = false;
   }
 }
