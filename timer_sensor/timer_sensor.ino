@@ -19,7 +19,7 @@ char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
-#define TIMELIMIT 595000
+#define TIMELIMIT 600000
 int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;
 static int messageLen;
@@ -72,7 +72,7 @@ void setup() {
     read_data();
     if(pm10 == 0 && pm25 == 0 && pm100 == 0 && temp == 0 && hum == 0){
       Serial.println("in zero if");
-      while(pm10 == 0){        
+      while(pm10 == 0 || temp == 0){        
         Serial.println("in while");
         delay(1000);
         read_data();
@@ -92,10 +92,6 @@ void setup() {
     temp = 0;
     hum = 0;
     
-    wifiClient.stop();
-    Serial.println(wifiClient.connected()); //0 dc
-    WiFi.disconnect();
-    Serial.println(WiFi.status());
     digitalWrite(4, LOW);
 }
 /* ISR for timer, set timeout flag to true */
@@ -115,33 +111,29 @@ void loop() {
   Serial.println("in loop");
   Serial.println("delay 40 sec");
     delay(40000);
-  connectWIFI();
-  connectServer();
+//  connectWIFI();
+//  connectServer();
   read_data();
   
   // check wifi status, dc then re-connect
-  //Serial.println(WiFi.status());
-//  if(WiFi.status() != WL_CONNECTED) {
-//      digitalWrite(4, LOW);
-//      Serial.println("WiFi has disconnected. Re-connecting...");
-//      status = WL_IDLE_STATUS;
-//      while (status != WL_CONNECTED) {
-//          Serial.print("Attempting to connect to SSID: ");
-//          Serial.println(ssid);
-//          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-//          status = WiFi.begin(ssid,pass);
-//      
-//          // wait 5 seconds for connection:
-//          delay(2000);
-//      }
-//      connectServer();
-//  }
+  if(WiFi.status() != WL_CONNECTED) {
+      Serial.println("WiFi has disconnected. Re-connecting...");
+      status = WL_IDLE_STATUS;
+      while (status != WL_CONNECTED) {
+          Serial.print("Attempting to connect to SSID: ");
+          Serial.println(ssid);
+          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+          status = WiFi.begin(ssid,pass);
+      
+          // wait 5 seconds for connection:
+          delay(2000);
+      }
+      connectServer();
+  }
   // check server status, dc then re-connect
-//  Serial.println(wifiClient.status());
-//  if(!wifiClient.connected()){
-//      digitalWrite(4, LOW);
-//      connectServer();
-//  }
+  if(!wifiClient.connected()){
+      connectServer();
+  }
   
     // check the data is normal or not
     if(pm10 == 0 && pm25 == 0 && pm100 == 0 && temp == 0 && hum == 0){
@@ -176,10 +168,6 @@ void loop() {
     pm100 = 0;
     temp = 0;
     hum = 0;
-    wifiClient.stop();
-    Serial.println(wifiClient.connected()); //0 dc
-    WiFi.disconnect();  //6 dc
-    Serial.println(WiFi.status());  
     digitalWrite(4, LOW);
     timeout = false;
   }
@@ -290,7 +278,6 @@ void connectServer(){
     
     Serial.println("connected to server");
     recv_mes();
-    digitalWrite(4, HIGH);
 //    delay(10000);  
 }
 
