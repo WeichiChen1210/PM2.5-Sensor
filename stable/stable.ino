@@ -10,9 +10,9 @@
 #include <WiFiClient.h>
 #include <string.h>
 
-int ID = 5;
-char ssid[] = "CSIE-WLAN";          // your network SSID (name)
-char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
+int ID = 6;
+char ssid[] = "nckucnc";          // your network SSID (name)
+char pass[] = "ncku46545";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
 int status = WL_IDLE_STATUS;
@@ -56,7 +56,6 @@ void setup() {
     connectServer();
     
     Serial.println("message received");
-//    first_collect();
 }
 /*u8g.firstPage();  
     do {
@@ -166,7 +165,7 @@ void loop() {
     pm100 = 0;
     temp = 0;
     hum = 0;
-    // send every 60 seconds
+    // send every 10 min
     delay(600000);
   }
   else delay(1000);

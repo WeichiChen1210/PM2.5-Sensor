@@ -1,4 +1,4 @@
-// 
+// sensor
 /*  pm5003T 線 腳位 (TX綠 接 Arduino pin D2(rx) )
  *                   (SET白 接 Arduino pin D4也可不接)
  vcc GND  SET  RX  TX  RESET
@@ -11,7 +11,7 @@
 #include <WiFiClient.h>
 #include <string.h>
 
-int ID = 6;
+int ID = 5;
 char ssid[] = "CSIE-WLAN";          // your network SSID (name)
 char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
