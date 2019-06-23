@@ -1,3 +1,4 @@
+// sensor
 /*  pm5003T 線 腳位 (TX綠 接 Arduino pin D2(rx) )
  *                   (SET白 接 Arduino pin D4也可不接)
  vcc GND  SET  RX  TX  RESET
@@ -9,10 +10,11 @@
 #include <LWiFi.h>
 #include <WiFiClient.h>
 #include <string.h>
+#define TIMELIMIT 867000
 
-int ID = 6;
-char ssid[] = "nckucnc";          // your network SSID (name)
-char pass[] = "ncku46545";     // your network password (use for WPA, or use as key for WEP)
+int ID = 4;
+char ssid[] = "";          // your network SSID (name)
+char pass[] = "chubchub";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
 int status = WL_IDLE_STATUS;
@@ -45,13 +47,12 @@ char send_msg[1024];
 
 void setup() {
     // put your setup code here, to run once:
-    Serial.begin(19200);
+    Serial.begin(9600);
     mySerial.begin(9600);
 
     pinMode(4, OUTPUT);
-    digitalWrite(4, LOW);
+    turn_on_sensor();
 
-//    LRTC.begin();
     connectWIFI();
     connectServer();
     
@@ -66,36 +67,48 @@ void setup() {
 */
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  int count = 0;
-  unsigned char c;
-  unsigned char high;
-
+  // read data
+  read_data();
+  
   // check wifi status, dc then re-connect
   //Serial.println(WiFi.status());
   if(WiFi.status() != WL_CONNECTED) {
-      digitalWrite(4, LOW);
       Serial.println("WiFi has disconnected. Re-connecting...");
       status = WL_IDLE_STATUS;
-      while (status != WL_CONNECTED) {
-          Serial.print("Attempting to connect to SSID: ");
-          Serial.println(ssid);
-          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-          status = WiFi.begin(ssid,pass);
-      
-          // wait 5 seconds for connection:
-          delay(2000);
-      }
+      connectWIFI();
       connectServer();
   }
   // check server status, dc then re-connect
   //Serial.println(wifiClient.status());
   if(!wifiClient.connected()){
-      digitalWrite(4, LOW);
       connectServer();
   }
-  // read data
-  while (mySerial.available()) {
+  
+  // sending data message
+  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
+  Serial.println(send_msg);
+  if(pm10 != 0 && pm25 != 0 && pm100 != 0 && temp != 0 && hum != 0){
+    send_mes(send_msg);
+    pm10 = 0;
+    pm25 = 0;
+    pm100 = 0;
+    temp = 0;
+    hum = 0;
+    digitalWrite(4, LOW);
+    wifiClient.stop();
+    // send every 9.5 mins
+    delay(TIMELIMIT);
+    turn_on_sensor();
+  }
+  else delay(1000);
+}
+
+void read_data(){
+    int count = 0;
+    unsigned char c;
+    unsigned char high;
+    
+    while (mySerial.available()) {
     c = mySerial.read();
     if((count==0 && c!=0x42) || (count==1 && c!=0x4d)){
       Serial.println("check failed");
@@ -150,44 +163,12 @@ void loop() {
     count++;
   }
   while(mySerial.available()) mySerial.read();
-  
-//  char timebuf[64];
-//  LRTC.get();
-//  sprintf(timebuf, "%ld/%ld/%ld %.2ld:%.2ld:%.2ld", LRTC.year(), LRTC.month(), LRTC.day(), LRTC.hour(), LRTC.minute(), LRTC.second());
-
-  // sending data message
-  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
-  Serial.println(send_msg);
-  if(pm10 != 0 && pm25 != 0){
-    send_mes(send_msg);
-    pm10 = 0;
-    pm25 = 0;
-    pm100 = 0;
-    temp = 0;
-    hum = 0;
-    // send every 10 min
-    delay(600000);
-  }
-  else delay(1000);
 }
 
-void printWifiStatus() {
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-
-  // print your WiFi shield's IP address:
-  IPAddress ip = WiFi.localIP();
-  Serial.print("IP Address: ");
-  Serial.println(ip);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.print(rssi);
-  Serial.println(" dBm");
-
-  Serial.println(WiFi.status());
+void turn_on_sensor(){
+  digitalWrite(4, HIGH);
+  Serial.println("delay 30 sec");
+  delay(30000);
 }
 
 void connectWIFI(){
@@ -231,8 +212,6 @@ void connectServer(){
     
     Serial.println("connected to server");
     recv_mes();
-    digitalWrite(4, HIGH);
-    delay(30000);  
 }
 
 
@@ -260,10 +239,4 @@ void recv_mes(){
       delay(1000);
     }
   }
-//  int year, month, day, hour, minute, second;
-//  sscanf(recv_buf, "%04d-%02d-%02d %02d:%02d:%02d", &year, &month, &day, &hour, &minute, &second);
-//  LRTC.set(year, month, day, hour, minute, second);
-//   char buffer[64];
-//   sprintf(buffer, "%ld/%ld/%ld %.2ld:%.2ld:%.2ld", LRTC.year(), LRTC.month(), LRTC.day(), LRTC.hour(), LRTC.minute(), LRTC.second());
-//   Serial.println(buffer);
 }

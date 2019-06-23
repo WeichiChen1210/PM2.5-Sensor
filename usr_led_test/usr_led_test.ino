@@ -1,3 +1,4 @@
+// sensor
 /*  pm5003T 線 腳位 (TX綠 接 Arduino pin D2(rx) )
  *                   (SET白 接 Arduino pin D4也可不接)
  vcc GND  SET  RX  TX  RESET
@@ -9,16 +10,15 @@
 #include <LWiFi.h>
 #include <WiFiClient.h>
 #include <string.h>
-#include <LTimer.h>
+#define TIMELIMIT 867000
 
-LTimer timer0(LTIMER_0);
-bool timeout = false;
-int ID = 8;
-char ssid[] = "CSIE-WLAN";          // your network SSID (name)
-char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
+int ID = 6;
+char ssid[] = "arch-5107";          // your network SSID (name)
+//char ssid[] = "CSIE-WLAN";          // your network SSID (name)
+//char pass[] = "ncku46545";
+//char pass[] = "wificsie";     // your network password (use for WPA, or use as key for WEP)
 #define TCP_IP "140.116.82.93"
 #define TCP_PORT 82
-#define TIMELIMIT 900000
 int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;
 static int messageLen;
@@ -52,44 +52,15 @@ void setup() {
     Serial.begin(9600);
     mySerial.begin(9600);
 
-    // turn on the timer
-    timer0.begin();
-    timer0.start(TIMELIMIT, LTIMER_REPEAT_MODE, _callback0, NULL);
-    
+    pinMode(LED_BUILTIN, OUTPUT);
     pinMode(4, OUTPUT);
     digitalWrite(4, HIGH);
-    Serial.println("delay 40 sec");
-    delay(40000);
-    
+    turn_on_sensor();
+
     connectWIFI();
     connectServer();
     
-    // Send the first data
-    Serial.println("First send");
-    read_data();
-    if(pm10 == 0 && pm25 == 0 && pm100 == 0 && temp == 0 && hum == 0){
-//      Serial.println("in zero if");
-      while(pm10 == 0 || temp == 0){        
-//        Serial.println("in while");
-        delay(1000);
-        read_data();
-      } 
-    }
-    sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
-    Serial.println(send_msg);
-    send_mes(send_msg);
-    
-    pm10 = 0;
-    pm25 = 0;
-    pm100 = 0;
-    temp = 0;
-    hum = 0;
-    
-    digitalWrite(4, LOW);
-}
-/* ISR for timer, set timeout flag to true */
-void _callback0(void *usr_data){
-  timeout = true;
+    Serial.println("message received");
 }
 /*u8g.firstPage();  
     do {
@@ -97,80 +68,56 @@ void _callback0(void *usr_data){
       u8g.setFont(u8g_font_5x8);
       u8g.drawStr(0, 52, "(Normal)");
       } while( u8g.nextPage() );
-*/      
+*/
+
 void loop() {
-  if(timeout){
-    digitalWrite(4, HIGH);
-  Serial.println("delay 40 sec");
-    delay(40000);
-//  connectWIFI();
-//  connectServer();
+  // read data
   read_data();
   
   // check wifi status, dc then re-connect
+  //Serial.println(WiFi.status());
   if(WiFi.status() != WL_CONNECTED) {
       Serial.println("WiFi has disconnected. Re-connecting...");
       status = WL_IDLE_STATUS;
-      while (status != WL_CONNECTED) {
-          Serial.print("Attempting to connect to SSID: ");
-          Serial.println(ssid);
-          // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-          status = WiFi.begin(ssid,pass);
-      
-          // wait 5 seconds for connection:
-          delay(2000);
-      }
+      connectWIFI();
       connectServer();
   }
   // check server status, dc then re-connect
+  //Serial.println(wifiClient.status());
   if(!wifiClient.connected()){
       connectServer();
   }
-  
-    // check the data is normal or not
-    if(pm10 == 0 && pm25 == 0 && pm100 == 0 && temp == 0 && hum == 0){
-//      Serial.println("in zero if");
-      while(pm10 == 0){        
-//        Serial.println("in while");
-        delay(1000);
-        read_data();
-      } 
-    }
-    if(pm10 >= 1000 || temp > 45){
-      Serial.println("in big if");
-      while(pm10 >= 1000 || temp > 45){        
-//        Serial.println("in while");
-        delay(1000);
-        read_data();
-      }
-    }
-    // if normal, send data
-
-      sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
-      Serial.println(send_msg);
-      send_mes(send_msg);
-      
-    // zero the variables and set timeout flag back to false
+  digitalWrite(LED_BUILTIN, HIGH);
+  // sending data message
+  sprintf(send_msg, "{ 'pm10': %d, 'pm25': %d, 'pm100': %d, 'temp': %d, 'humidity': %d, 'position': %d }", pm10, pm25, pm100, temp, hum, ID);
+  Serial.println(send_msg);
+  if(pm10 != 0 && pm25 != 0 && pm100 != 0 && temp != 0 && hum != 0){
+    send_mes(send_msg);
     pm10 = 0;
     pm25 = 0;
     pm100 = 0;
     temp = 0;
     hum = 0;
     digitalWrite(4, LOW);
-    Serial.println(WiFi.status());
-    Serial.println(wifiClient.connected());
-    timeout = false;
+    wifiClient.stop();
+    // send every 9.5 mins
+    delay(TIMELIMIT);
+    turn_on_sensor();
+  }
+  else {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(1000);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
   }
 }
-// pack the reading data function
-void read_data(){
-//  Serial.println("in func");
-  int count = 0;
-  unsigned char c;
-  unsigned char high;
 
-  // read data
-  while (mySerial.available()) {
+void read_data(){
+    int count = 0;
+    unsigned char c;
+    unsigned char high;
+    
+    while (mySerial.available()) {
     c = mySerial.read();
     if((count==0 && c!=0x42) || (count==1 && c!=0x4d)){
       Serial.println("check failed");
@@ -227,76 +174,73 @@ void read_data(){
   while(mySerial.available()) mySerial.read();
 }
 
+void turn_on_sensor(){
+  digitalWrite(4, HIGH);
+  Serial.println("delay 30 sec");
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(30000);
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
 void connectWIFI(){
     // attempt to connect to Wifi network:
-    while (WiFi.status() != WL_CONNECTED) {
+    while (status != WL_CONNECTED) {
         Serial.print("Attempting to connect to SSID: ");
         Serial.println(ssid);
         // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
-        status = WiFi.begin(ssid,pass);
+        // status = WiFi.begin(ssid, pass);
+        status = WiFi.begin(ssid);
     
         // wait 2 seconds for connection:
-        delay(2000);
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(1000);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(1000);
+        
     }
     
     Serial.println("Connected to wifi");
     //printWifiStatus();
     // print your MAC address:
-    printCurrentNet();
+    byte mac[6];
+    WiFi.macAddress(mac);
+    Serial.print("MAC address: ");
+    Serial.print(mac[5], HEX);
+    Serial.print(":");
+    Serial.print(mac[4], HEX);
+    Serial.print(":");
+    Serial.print(mac[3], HEX);
+    Serial.print(":");
+    Serial.print(mac[2], HEX);
+    Serial.print(":");
+    Serial.print(mac[1], HEX);
+    Serial.print(":");
+    Serial.println(mac[0], HEX);
 }
 
 void connectServer(){
     //attempt to connect to server
     while (!wifiClient.connect(TCP_IP, TCP_PORT)){
-        delay(2000);
+        delay(5000);
         Serial.print("Attempting to connect to SERVER: ");
         Serial.println(TCP_IP);
+        
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(300);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(300);
     }
     
     Serial.println("connected to server");
     recv_mes();
-//    delay(10000);  
 }
 
-void printCurrentNet() {
-  // print the SSID of the network you're attached to:
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
 
-  // print the MAC address of the router you're attached to:
-  byte bssid[6];
-  WiFi.BSSID(bssid);
-  Serial.print("BSSID: ");
-  Serial.print(bssid[5], HEX);
-  Serial.print(":");
-  Serial.print(bssid[4], HEX);
-  Serial.print(":");
-  Serial.print(bssid[3], HEX);
-  Serial.print(":");
-  Serial.print(bssid[2], HEX);
-  Serial.print(":");
-  Serial.print(bssid[1], HEX);
-  Serial.print(":");
-  Serial.println(bssid[0], HEX);
-
-  // print the received signal strength:
-  long rssi = WiFi.RSSI();
-  Serial.print("signal strength (RSSI):");
-  Serial.println(rssi);
-
-  // print the encryption type:
-  byte encryption = WiFi.encryptionType();
-  Serial.print("Encryption Type:");
-  Serial.println(encryption, HEX);
-  Serial.println();
-}
 void send_mes(char mes[]){
     sprintf(send_buf,"%s", mes);
-    int len;
-    len = wifiClient.write(send_buf, strlen(send_buf));
+    wifiClient.write(send_buf, strlen(send_buf));
     wifiClient.flush();
     sprintf(send_buf, "");
-    Serial.println(len);
 }
 
 void recv_mes(){
